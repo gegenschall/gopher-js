@@ -1,0 +1,8 @@
+{
+  "changelog": "@changesets/changelog-github",
+  "format": "oxfmt",
+
+  "baseBranch": "main",
+  "fixed": [["@gopher-js/client", "@gopher-js/core", "@gopher-js/server"]],
+  "access": "public"
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@gopher-js/oxc-config",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./lint": "./lint.ts",
+    "./format": "./format.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@gopher-js/tsconfig": "workspace:*",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,15 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: '*.{js,mjs,ts,json,jsonc,yaml,yml,md}'
+      run: pnpm exec oxfmt --check {staged_files}
+
+    - name: lint
+      glob: '*.{js,mjs,ts}'
+      run: pnpm exec oxlint --deny-warnings {staged_files}
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit "{1}"

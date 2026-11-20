@@ -1,0 +1,9 @@
+{
+  "name": "@gopher-js/tsconfig",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./base.json": "./base.json",
+    "./node-library.json": "./node-library.json"
+  }
+}

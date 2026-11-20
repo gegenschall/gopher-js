@@ -1,0 +1,15 @@
+packages:
+  - packages/*
+  - tooling/*
+  - examples/*
+  - tests/*
+
+catalog:
+  '@types/node': 26.6.6
+  oxfmt: 0.79.0
+  oxlint: 1.94.0
+  typescript: 7.1.0-beta
+  vitest: 5.1.1
+
+onlyBuiltDependencies:
+  - lefthook
