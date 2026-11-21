@@ -11,6 +11,8 @@
   },
   "devDependencies": {
     "@gopher-js/tsconfig": "workspace:*",
+    "@stylistic/eslint-plugin": "6.0.1",
+    "@types/node": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "typescript": "catalog:"

@@ -1,15 +1,40 @@
+import { createRequire } from 'node:module';
+
 import { defineConfig } from 'oxlint';
 
 export default defineConfig({
   plugins: ['typescript', 'unicorn', 'oxc'],
-  categories: { correctness: 'error', suspicious: 'error' },
-
-  overrides: [
+  jsPlugins: [
     {
-      files: ['packages/{client,core,server}/src/index.ts'],
-      rules: { 'unicorn/no-empty-file': 'off' },
+      name: 'stylistic',
+      specifier: createRequire(import.meta.url).resolve('@stylistic/eslint-plugin'),
     },
   ],
+
+  rules: {
+    'stylistic/list-style': [
+      'error',
+      {
+        overrides: {
+          '{}': 'off',
+          '[]': 'off',
+          '()': 'off',
+          '<>': 'off',
+          ObjectExpression: {
+            singleLine: {
+              maxItems: 2,
+              spacing: 'always',
+            },
+          },
+        },
+      },
+    ],
+  },
+
+  categories: {
+    correctness: 'error',
+    suspicious: 'error',
+  },
 
   ignorePatterns: ['**/dist/**', '**/coverage/**', '**/.turbo/**'],
 });
