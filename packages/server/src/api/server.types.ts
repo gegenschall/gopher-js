@@ -34,6 +34,6 @@ export interface GopherServer<Codec extends ItemCodec = never> {
     handler: RouteHandler<NoInfer<ItemValue<Selected>>>,
   ): Route<Selected['type']>;
 
-  listen(address: GopherAddress): Promise<void>;
+  listen(address: GopherAddress): Promise<GopherAddress>;
   close(): Promise<void>;
 }

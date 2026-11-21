@@ -36,3 +36,10 @@ export const tcpTest = base
 
     return { address, socket: accepted.promise };
   });
+
+export const waitForReset = async (socket: Socket, signal: AbortSignal) => {
+  const closed = new Promise<void>((resolve) => socket.once('close', () => resolve()));
+  const [error] = await once(socket, 'error', { signal });
+  if (error.code !== 'ECONNRESET') throw error;
+  await closed;
+};

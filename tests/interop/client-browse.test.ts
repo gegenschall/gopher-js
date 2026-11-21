@@ -4,7 +4,7 @@ import { createClient } from '@gopher-js/client';
 import { collectBinary, createWire, defineItemType } from '@gopher-js/core';
 import { vi } from 'vitest';
 
-import { tcpTest } from './fixtures/tcp.js';
+import { tcpTest, waitForReset } from './fixtures/tcp.js';
 
 const test = tcpTest.extend(
   'serve',
@@ -141,7 +141,7 @@ test('binary yields before EOF and breaking iteration closes the socket', async 
   const respond = async () => {
     const socket = await peer.socket;
     await once(socket, 'data', { signal });
-    const closed = once(socket, 'close', { signal });
+    const closed = waitForReset(socket, signal);
     socket.write(Buffer.from([255]));
     await closed;
   };
@@ -162,7 +162,7 @@ test('aborting a pending binary read releases the socket', async ({ peer, signal
   const abortAfterRequest = async () => {
     const socket = await peer.socket;
     await once(socket, 'data', { signal });
-    const closed = once(socket, 'close', { signal });
+    const closed = waitForReset(socket, signal);
     controller.abort();
     await closed;
   };

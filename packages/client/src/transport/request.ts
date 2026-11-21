@@ -1,4 +1,4 @@
-import { once } from 'node:events';
+import { addAbortListener, once } from 'node:events';
 import { createConnection } from 'node:net';
 
 import type {
@@ -17,14 +17,11 @@ const openResponse = async (
 ) => {
   signal?.throwIfAborted();
   const bytes = wire.encodeRequest(request);
-  const socket = createConnection({
-    host,
-    port,
-    signal,
-  });
+  const socket = createConnection({ host, port });
 
   try {
-    await once(socket, 'connect');
+    await once(socket, 'connect', { signal });
+    signal?.throwIfAborted();
     socket.write(bytes);
     return socket;
   } catch (error) {
@@ -42,12 +39,20 @@ export const readResponse = async <Result>(
 ): Promise<Result> => {
   const socket = await openResponse(address, wire, request, signal);
 
+  // A custom reader may start consuming bytes asynchronously.
+  const { reject, promise } = Promise.withResolvers<never>();
+  socket.on('error', reject);
+  const abort =
+    signal &&
+    addAbortListener(signal, () => {
+      reject(signal.reason);
+      socket.resetAndDestroy();
+    });
+
   try {
-    // A custom reader may start consuming bytes asynchronously.
-    const { reject, promise } = Promise.withResolvers<never>();
-    socket.on('error', reject);
     return await Promise.race([promise, read(socket)]);
   } finally {
+    abort?.[Symbol.dispose]();
     socket.destroy();
   }
 };
@@ -59,9 +64,17 @@ export async function* streamBinary(
 ): AsyncGenerator<Uint8Array> {
   const socket = await openResponse(target, wire, { selector: target.selector }, signal);
 
+  const abort = signal && addAbortListener(signal, () => socket.resetAndDestroy());
+
   try {
-    yield* socket;
+    yield* socket.iterator({ destroyOnReturn: false });
+    signal?.throwIfAborted();
+  } catch (error) {
+    signal?.throwIfAborted();
+    throw error;
   } finally {
-    socket.destroy();
+    abort?.[Symbol.dispose]();
+    if (!socket.destroyed && !socket.readableEnded) socket.resetAndDestroy();
+    else socket.destroy();
   }
 }

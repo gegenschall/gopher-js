@@ -3,19 +3,18 @@ import { createMenuEntry, type GopherAddress } from '@gopher-js/core';
 import type { Route } from '../api/route.types.js';
 import type { Binding } from './binding.types.js';
 
-export const createRouteTable = (publicAddress: GopherAddress) => {
-  const address = { ...publicAddress };
+export const createRouteTable = ({ host, port }: GopherAddress, boundPort: () => number) => {
   const routes = new Map<string, Binding>();
 
-  const register = <WireType extends string>(
+  const register = <Type extends string>(
+    type: Type,
     selector: string,
-    binding: Binding & { type: WireType },
-  ): Route<WireType> => {
+    binding: Binding,
+  ): Route<Type> => {
     if (routes.has(selector)) {
       throw new Error(`A route already exists for selector "${selector}".`);
     }
 
-    const { type } = binding;
     routes.set(selector, binding);
 
     return {
@@ -23,11 +22,14 @@ export const createRouteTable = (publicAddress: GopherAddress) => {
       selector,
       link: (label) =>
         createMenuEntry(type, label, {
-          ...address,
+          host,
+          get port() {
+            return port || boundPort();
+          },
           selector,
         }),
     };
   };
 
-  return { register };
+  return { register, lookup: (selector: string) => routes.get(selector) };
 };

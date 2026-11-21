@@ -1,6 +1,6 @@
 # Gopher JS
 
-An ESM-only Node.js workspace for `@gopher-js/client`, `@gopher-js/server`, and `@gopher-js/core`. The client fetches menus, searches, text, and binary items over TCP. The server supports route registration and menu construction in memory. Its TCP listener is still scaffolded.
+An ESM-only Node.js workspace for `@gopher-js/client`, `@gopher-js/server`, and `@gopher-js/core`. The client fetches menus, searches, text, and binary items over TCP. The server dispatches requests to typed route handlers and serves their responses over TCP.
 
 ## Public API
 
@@ -63,6 +63,31 @@ Call `client.menu()` for the root menu, or `client.search(selector, query)` for 
 
 `client.binary(selector)`, binary entries’ `read()`, and unknown entries’ `raw()` stream bytes through EOF. Iteration opens the connection, and breaking out of the loop releases it. Registered binary codecs receive a complete buffer for decoding. Pass `{ signal }` to a request or entry method to cancel that operation.
 
+### Serving requests
+
+`listen()` resolves with the bound host and port when the server can accept connections. Use port `0` to let the OS choose a port. The published host comes from `publicAddress`. With a public port of `0`, route links report the bound port while the server listens, including links created before startup. An explicit public port is also suitable for a proxy.
+
+```ts
+const loopback = { host: '127.0.0.1', port: 0 };
+const server = createServer({ publicAddress: loopback });
+const about = server.text('/about', () => 'Hello from Gopher!');
+server.menu('', () => [about.link('About')]);
+
+const address = await server.listen(loopback);
+try {
+  const client = createClient(address);
+  console.log(await client.text('/about'));
+} finally {
+  await server.close();
+}
+```
+
+Each connection serves one selector. A search route requires a tab and accepts an empty query. Malformed requests, missing routes, unexpected queries, and handler failures before the first response byte produce a type-3 error menu. After a binary response starts, a producer failure resets the connection so the reader can detect an incomplete transfer.
+
+Binary handlers can return an async iterable and receive an abort signal, as do other route handlers. Use the signal for pending I/O so disconnects and shutdown can interrupt work. The server waits for socket write capacity when streaming. A client may half-close its write side after sending the selector and continue receiving the response. The library client sends a TCP reset when cancelling an active request or abandoning a binary stream.
+
+`close()` stops accepting connections, aborts in-flight handlers, and closes active sockets. It can be called concurrently or before startup completes. After it resolves, the server can listen again with the same routes.
+
 ## Wire protocol
 
 `@gopher-js/core` exposes the wire functions independently of the TCP client and server. Pass a `Uint8Array`, an iterable of byte chunks, or an async iterable such as a Node socket to the message readers.
@@ -117,6 +142,18 @@ Core groups shared data in `model/` and custom item codecs in `codecs/`. Shared 
 Within each package, domain contracts live in `*.types.ts` files alongside their implementations. Package-root exports are the public import paths.
 
 Each workspace owns its TypeScript checks. Shared compiler, Vitest, Oxlint, and Oxfmt settings live in `tooling/`. Wire unit tests in `packages/core/test/wire/` use literal transcripts and exercise chunk boundaries. Run them with `pnpm --filter @gopher-js/core test`. Cross-package tests in `tests/interop/` import the built packages by name and exercise a real loopback TCP exchange.
+
+### Proposed performance benchmarks
+
+Establish a baseline on a pinned Node version and record the commit, OS, CPU, payload sizes, and concurrency. Keep the load generator in a separate process for TCP measurements. Use warm-up runs, several measured repetitions, and fixed input data. Verify the bytes received before recording a sample.
+
+| Workload                            | Suggested scenarios                                                                                 | Measurements                                                             |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Wire parsing and encoding in memory | 10, 100, and 1,000 menu entries, Latin-1 and UTF-8, whole buffers and fragmented input              | Entries/s, MiB/s, CPU time                                               |
+| Complete loopback requests          | Text, root menu, and Unicode search at 1, 16, and 64 concurrent clients, one connection per request | Requests/s, p50/p95/p99 latency, errors                                  |
+| Binary streaming                    | Fixed 1 MiB and 64 MiB bodies with a fast reader, a throttled reader, and early cancellation        | MiB/s, time to first byte, peak server RSS, time to release the producer |
+
+Run the baseline manually on the same machine across revisions. Record variation between runs before choosing regression thresholds. Profile the workload that shows a repeatable bottleneck before proposing an implementation change.
 
 ## Changes and releases
 

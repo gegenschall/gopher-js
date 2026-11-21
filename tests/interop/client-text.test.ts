@@ -3,7 +3,7 @@ import { once } from 'node:events';
 import { createClient } from '@gopher-js/client';
 import { createWire } from '@gopher-js/core';
 
-import { tcpTest as test } from './fixtures/tcp.js';
+import { tcpTest as test, waitForReset } from './fixtures/tcp.js';
 
 test('sends the opaque selector and completes at the dot line while the peer stays open', async ({
   peer,
@@ -53,7 +53,7 @@ test('aborting a pending read rejects the request and closes the connection', as
   const abortAfterRequest = async () => {
     const socket = await peer.socket;
     await once(socket, 'data', { signal });
-    const closed = once(socket, 'close', { signal });
+    const closed = waitForReset(socket, signal);
     controller.abort();
     await closed;
   };
