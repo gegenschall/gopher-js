@@ -1,0 +1,26 @@
+{
+  "name": "@gopher-js/nest-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@gopher-js/client": "workspace:*",
+    "@gopher-js/core": "workspace:*",
+    "@gopher-js/nest-gopher": "workspace:*",
+    "@gopher-js/server": "workspace:*",
+    "@gopher-js/tsconfig": "workspace:*",
+    "@gopher-js/vitest-config": "workspace:*",
+    "@nestjs/common": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/microservices": "catalog:",
+    "@nestjs/platform-express": "catalog:",
+    "@types/node": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

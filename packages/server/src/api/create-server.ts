@@ -67,6 +67,11 @@ export const createServer = <const Codec extends ItemCodec = never>(
 
   return {
     wire,
+    get address() {
+      return listener.address();
+    },
+    on: listener.on,
+
     text: (selector, handler) =>
       register(itemTypes.text, selector, {
         read: encodeResult(handler, (text) => wire.encodeText(text)),

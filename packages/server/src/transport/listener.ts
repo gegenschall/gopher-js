@@ -3,7 +3,7 @@ import { createServer, type Socket } from 'node:net';
 
 import type { GopherAddress } from '@gopher-js/core';
 
-import type { CloseOptions } from '../api/server.types.js';
+import type { CloseOptions, GopherServerEvents } from '../api/server.types.js';
 
 export const createListener = (
   serve: (socket: Socket, signal: AbortSignal, markResponding: () => void) => Promise<void>,
@@ -113,5 +113,11 @@ export const createListener = (
     listen,
     close,
     address,
+    on<Event extends keyof GopherServerEvents>(event: Event, listener: GopherServerEvents[Event]) {
+      server.on(event, listener);
+      return () => {
+        server.off(event, listener);
+      };
+    },
   };
 };

@@ -1,14 +1,21 @@
 packages:
   - packages/*
+  - contrib/*
   - tooling/*
   - examples/*
   - tests/*
 
 catalog:
+  '@nestjs/common': 12.6.0
+  '@nestjs/core': 12.6.0
+  '@nestjs/microservices': 12.6.0
+  '@nestjs/platform-express': 12.6.0
   '@types/node': 26.6.6
   fast-check: 4.10.3
   oxfmt: 0.79.0
   oxlint: 1.94.0
+  reflect-metadata: 0.2.2
+  rxjs: 7.8.2
   typescript: 7.1.0-beta
   vitest: 5.1.1
 

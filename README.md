@@ -1,6 +1,6 @@
 # Gopher JS
 
-An ESM-only Node.js workspace for `@gopher-js/client`, `@gopher-js/server`, and `@gopher-js/core`. The client fetches menus, searches, text, and binary items over TCP. The server dispatches requests to typed route handlers and serves their responses over TCP.
+An ESM-only Node.js workspace for `@gopher-js/client`, `@gopher-js/server`, and `@gopher-js/core`, with an optional `@gopher-js/nest-gopher` adapter. The client fetches menus, searches, text, and binary items over TCP. The server dispatches requests to typed route handlers and serves their responses over TCP.
 
 ## Public API
 
@@ -96,6 +96,64 @@ Binary handlers can return an async iterable and receive an abort signal, as do 
 
 Use `await server.close({ gracePeriodMs: 5_000 })` to let dispatched handlers and response transfers finish. The listener stops accepting connections and closes sockets waiting for a request line immediately. If any transfers remain at the deadline, the server aborts their signals and resets their sockets. Concurrent close calls share the first call’s deadline. Shutdown completes when the sockets close, even if application code ignores cancellation.
 
+### NestJS controllers
+
+`@gopher-js/nest-gopher` exposes Gopher selectors from Nest 12 controllers. Use Nest's legacy TypeScript decorators (`experimentalDecorators`) in the application. Import `reflect-metadata` at startup.
+
+```ts
+import 'reflect-metadata';
+import type { Menu } from '@gopher-js/core';
+import {
+  GopherMenu,
+  GopherSearch,
+  GopherText,
+  GopherTransport,
+  type SearchContext,
+} from '@gopher-js/nest-gopher';
+import { info, link } from '@gopher-js/server';
+import { Controller, Module } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { Ctx } from '@nestjs/microservices';
+
+const publicAddress = { host: 'localhost', port: 7070 };
+
+@Controller()
+class ArchiveController {
+  @GopherMenu('')
+  home(): Menu {
+    return [
+      link.text('About', { ...publicAddress, selector: '/about' }),
+      link.search('Search the archive', { ...publicAddress, selector: '/find' }),
+    ];
+  }
+
+  @GopherText('/about')
+  about(): string {
+    return 'Welcome to the archive.';
+  }
+
+  @GopherSearch('/find')
+  find(@Ctx() { query }: SearchContext): Menu {
+    return [info(query)];
+  }
+}
+
+@Module({ controllers: [ArchiveController] })
+class ArchiveModule {}
+
+const strategy = new GopherTransport({ listen: publicAddress, publicAddress });
+const app = await NestFactory.createMicroservice(ArchiveModule, { strategy });
+await app.listen();
+```
+
+Selectors are exact, including the empty root selector. `@Ctx()` supplies the server's selector and abort signal, plus the query for search routes. `@Payload()` receives the decoded request fields and supports Nest pipes. Guards, interceptors, and exception filters use Nest's RPC context.
+
+Use `@GopherBinary(selector)` for a byte buffer or an async iterable of byte chunks. `@GopherItem(codec, selector)` checks the method's return type against the codec. Register the same codec in the transport's `types` option. An Observable handler supplies its first emitted value as the response, and disconnecting unsubscribes a pending Observable.
+
+Pass server options such as `wire`, `requestTimeoutMs`, and `maxRequestBytes` to the transport. With `listen.port` set to zero, `strategy.address` gives the bound endpoint after startup. `app.close()` closes the listener and applies the optional `close: { gracePeriodMs }` setting. To share a Nest application with HTTP, call `app.connectMicroservice({ strategy })` and `await app.startAllMicroservices()` on the HTTP application.
+
+Subscribe to native TCP events before or after startup. For example, `app.on<GopherServerEvents, 'error'>('error', reportError)` observes listener errors such as a port already in use. Import `GopherServerEvents` from `@gopher-js/nest-gopher` for typed Nest callbacks. On the strategy itself, `strategy.on('connection', listener)` infers the socket type and returns an unsubscribe function. The `onError` option reports Gopher handler and response failures.
+
 ## Wire protocol
 
 `@gopher-js/core` exposes the wire functions independently of the TCP client and server. Pass a `Uint8Array`, an iterable of byte chunks, or an async iterable such as a Node socket to the message readers.
@@ -183,4 +241,4 @@ Run the baseline manually on the same machine across revisions. Record variation
 
 Use Conventional Commits, such as `chore(tooling): configure linting`. Lefthook checks the message at commit time.
 
-Run `pnpm changeset` for a user-facing change and commit the resulting Markdown file. Once it reaches `main`, the changelog workflow opens a version PR for the three public packages, including GitHub links in their changelogs. Enable **Allow GitHub Actions to create and approve pull requests** in the repository's Actions settings for this workflow.
+Run `pnpm changeset` for a user-facing change and commit the resulting Markdown file. Once it reaches `main`, the changelog workflow opens a version PR for the affected packages, including GitHub links in their changelogs. Enable **Allow GitHub Actions to create and approve pull requests** in the repository's Actions settings for this workflow.

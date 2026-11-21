@@ -6,6 +6,7 @@ export type { RequestContext, Route, RouteHandler, SearchContext } from './api/r
 export type {
   CloseOptions,
   GopherServer,
+  GopherServerEvents,
   ServerErrorEvent,
   ServerOptions,
 } from './api/server.types.js';

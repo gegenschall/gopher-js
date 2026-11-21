@@ -1,0 +1,11 @@
+{
+  "extends": "@gopher-js/tsconfig/base.json",
+
+  "compilerOptions": {
+    "noEmit": true,
+    "experimentalDecorators": true,
+    "types": ["node"]
+  },
+
+  "include": ["*.ts"]
+}

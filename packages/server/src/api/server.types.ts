@@ -1,3 +1,5 @@
+import type { ServerEventMap } from 'node:net';
+
 import type {
   GopherWire,
   BuiltinItemType,
@@ -32,8 +34,19 @@ export interface CloseOptions {
 
 type BinaryBody = Uint8Array | AsyncIterable<Uint8Array>;
 
+export type GopherServerEvents = {
+  [Event in keyof ServerEventMap]: (...args: ServerEventMap[Event]) => void;
+};
+
 export interface GopherServer<Codec extends ItemCodec = never> {
   readonly wire: GopherWire;
+  readonly address: GopherAddress | undefined;
+
+  /** Observe a native TCP server event. Call the returned function to stop observing. */
+  on<Event extends keyof GopherServerEvents>(
+    event: Event,
+    listener: GopherServerEvents[Event],
+  ): () => void;
 
   text(selector: string, handler: RouteHandler<string>): Route<BuiltinItemType<'text'>>;
   menu(selector: string, handler: RouteHandler<Menu>): Route<BuiltinItemType<'menu'>>;
