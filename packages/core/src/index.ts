@@ -15,3 +15,28 @@ export type {
   MenuLine,
 } from './model/menu.types.js';
 export type { GopherAddress, GopherTarget } from './model/target.types.js';
+
+export { collectBinary } from './wire/binary.js';
+export {
+  createWire,
+  parseRequest,
+  encodeRequest,
+  encodeMenu,
+  parseMenu,
+  encodeMenuEntry,
+  parseMenuEntry,
+  encodeText,
+  parseText,
+} from './wire/create-wire.js';
+export type {
+  Charset,
+  GopherWire,
+  MenuEntryCodec,
+  MenuFraming,
+  MenuFramingOptions,
+  TextFraming,
+  TextFramingOptions,
+  WireCharset,
+  WireOptions,
+} from './wire/options.types.js';
+export type { GopherRequest, WireSource } from './wire/wire.types.js';

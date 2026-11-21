@@ -242,12 +242,18 @@ importers:
       '@gopher-js/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
+      '@gopher-js/vitest-config':
+        specifier: workspace:*
+        version: link:../../tooling/vitest-config
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6
       typescript:
         specifier: 'catalog:'
         version: 7.1.0-beta
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/server:
     dependencies:

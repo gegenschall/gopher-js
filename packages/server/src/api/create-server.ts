@@ -1,4 +1,4 @@
-import { itemTypes, validateItemTypes, type ItemCodec } from '@gopher-js/core';
+import { createWire, itemTypes, validateItemTypes, type ItemCodec } from '@gopher-js/core';
 
 import { createRouteTable } from '../dispatch/route-table.js';
 import { close, listen } from '../transport/listener.js';
@@ -14,6 +14,8 @@ export const createServer = <const Codec extends ItemCodec = never>(
   const { register } = createRouteTable(options.publicAddress);
 
   return {
+    wire: options.wire ?? createWire(),
+
     text: (selector, handler) =>
       register(selector, {
         type: itemTypes.text,

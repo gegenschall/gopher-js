@@ -1,15 +1,25 @@
-import type { BuiltinItemType, GopherAddress, ItemCodec, ItemValue, Menu } from '@gopher-js/core';
+import type {
+  GopherWire,
+  BuiltinItemType,
+  GopherAddress,
+  ItemCodec,
+  ItemValue,
+  Menu,
+} from '@gopher-js/core';
 
 import type { Route, RouteHandler, SearchContext } from './route.types.js';
 
 export interface ServerOptions<Codec extends ItemCodec = never> {
   readonly publicAddress: GopherAddress;
   readonly types?: readonly Codec[];
+  readonly wire?: GopherWire;
 }
 
 type BinaryBody = Uint8Array | AsyncIterable<Uint8Array>;
 
 export interface GopherServer<Codec extends ItemCodec = never> {
+  readonly wire: GopherWire;
+
   text(selector: string, handler: RouteHandler<string>): Route<BuiltinItemType<'text'>>;
   menu(selector: string, handler: RouteHandler<Menu>): Route<BuiltinItemType<'menu'>>;
   search(

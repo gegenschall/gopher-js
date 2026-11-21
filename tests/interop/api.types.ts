@@ -1,5 +1,6 @@
 import { createClient, type BrowsableEntry, type BrowsableMenu } from '@gopher-js/client';
 import {
+  createWire,
   defineItemType,
   type BuiltinMenuItem,
   type BuiltinItemType,
@@ -117,3 +118,12 @@ export const archive = () => {
     encode: () => 42,
   });
 };
+
+// @ts-expect-error A charset preset must be supported.
+createWire({ charset: 'utf-16' });
+// @ts-expect-error A custom charset must also decode.
+createWire({ charset: { encode: () => new Uint8Array() } });
+// @ts-expect-error A menu writer must choose one way to end the response.
+createWire({ menuFraming: { write: 'dot-or-eof' } });
+// @ts-expect-error A custom framing strategy supplies both directions.
+createWire({ textFraming: { read: async () => 'hello' } });
