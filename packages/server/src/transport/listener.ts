@@ -20,8 +20,10 @@ export const createListener = (
 
     socket.on('error', (error) => controller.abort(error));
     socket.once('close', () => {
-      controller.abort();
       active.delete(socket);
+
+      // Create the default AbortError after the socket's close-event stack unwinds.
+      if (!controller.signal.aborted) queueMicrotask(controller.abort.bind(controller));
     });
 
     const markResponding = () => {

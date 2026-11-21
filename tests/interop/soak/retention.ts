@@ -39,7 +39,7 @@ export const trackRequests = () => {
 
   return {
     signal: (signal: AbortSignal) => signals.push(new WeakRef(signal)),
-    async check(expected: number) {
+    async check(expected: number, { retainedSignals = 0 } = {}) {
       assert.equal(sockets.length, expected, 'Accepted socket count');
       assert.equal(signals.length, expected, 'Dispatched request count');
       await collectMemory();
@@ -47,7 +47,11 @@ export const trackRequests = () => {
       const liveSockets = sockets.filter((ref) => ref.deref() !== undefined).length;
       const liveSignals = signals.filter((ref) => ref.deref() !== undefined).length;
       assert.equal(liveSockets, 0, 'Closed server sockets retained after GC');
-      assert.equal(liveSignals, 0, 'Completed request signals retained after GC');
+      assert.equal(
+        liveSignals,
+        retainedSignals,
+        'Unexpected number of retained request signals after GC',
+      );
       sockets.length = 0;
       signals.length = 0;
     },
