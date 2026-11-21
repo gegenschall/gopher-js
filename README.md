@@ -1,8 +1,17 @@
 # Gopher JS
 
-An ESM-only Node.js workspace for `@gopher-js/client`, `@gopher-js/server`, and `@gopher-js/core`. Codec definitions, route registration, and menu link builders work in memory. Client requests and `server.listen()` currently report an unimplemented TCP transport.
+An ESM-only Node.js workspace for `@gopher-js/client`, `@gopher-js/server`, and `@gopher-js/core`. The client fetches menus, searches, text, and binary items over TCP. The server supports route registration and menu construction in memory. Its TCP listener is still scaffolded.
 
 ## Public API
+
+To read a text item, pass its selector to `client.text()`. The client connects to port 70 by default. Use an abort signal to bound the request.
+
+```ts
+import { createClient } from '@gopher-js/client';
+
+const client = createClient({ host: 'gopher.floodgap.com' });
+const document = await client.text('/gopher/proxy', { signal: AbortSignal.timeout(10_000) });
+```
 
 The wire field `type` is the one-character Gopher item type. Core pairs it with a readable `kind` and owns the menu data and codec types. A server route's `link()` returns a core `MenuEntry` containing `type`, `label`, and `target`. The client returns a `BrowsableMenu` of `BrowsableEntry` values with those fields and the operations each kind supports. A `BrowsableMenu` satisfies the core `Menu` contract, so a server handler can return an upstream client menu directly.
 
@@ -39,7 +48,7 @@ const find = server.search('/find', ({ query }) => [info(query)]);
 server.menu('', () => [visits.link('Visit count'), find.link('Search')]);
 ```
 
-The client contract supports direct requests by selector and browsing by entry. Each entry carries its own host, port, and selector in `target`. Narrowing `kind` selects the available operation and its result.
+The client supports direct requests by selector and browsing by entry. Each entry carries its own host, port, and selector in `target`. Narrowing `kind` selects the available operation and its result.
 
 ```ts
 for (const entry of await client.menu()) {
@@ -50,7 +59,9 @@ for (const entry of await client.menu()) {
 }
 ```
 
-Text and menu reads return promises. Binary reads and unknown entries' `raw()` expose an `AsyncIterable<Uint8Array>`. Request methods accept an optional `{ signal }` for cancellation.
+Call `client.menu()` for the root menu, or `client.search(selector, query)` for search results. Both return browsable entries in wire order. A menu entry’s `read()` and a search entry’s `search(query)` use the entry’s advertised host, port, and selector.
+
+`client.binary(selector)`, binary entries’ `read()`, and unknown entries’ `raw()` stream bytes through EOF. Iteration opens the connection, and breaking out of the loop releases it. Registered binary codecs receive a complete buffer for decoding. Pass `{ signal }` to a request or entry method to cancel that operation.
 
 ## Wire protocol
 

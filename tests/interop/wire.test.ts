@@ -1,44 +1,21 @@
 import { once } from 'node:events';
-import { createConnection, createServer, type Socket } from 'node:net';
+import { createConnection } from 'node:net';
 import { buffer } from 'node:stream/consumers';
 
 import { createClient } from '@gopher-js/client';
 import { createWire, encodeText, parseRequest } from '@gopher-js/core';
 import { createServer as createGopherServer } from '@gopher-js/server';
-import { test as base } from 'vitest';
 
-const test = base.extend('peers', async ({ signal }, { onCleanup }) => {
-  const accepted = Promise.withResolvers<Socket>();
-  const sockets = new Set<Socket>();
-  const listener = createServer((socket) => {
-    sockets.add(socket);
-    accepted.resolve(socket);
+import { tcpTest } from './fixtures/tcp.js';
+
+const test = tcpTest.extend('peers', async ({ peer, signal }, { onCleanup }) => {
+  const client = createConnection(peer.address);
+  onCleanup(() => {
+    client.destroy();
   });
-
-  onCleanup(async () => {
-    for (const socket of sockets) {
-      socket.destroy();
-    }
-
-    if (listener.listening) {
-      await listener[Symbol.asyncDispose]();
-    }
-  });
-
-  const ready = once(listener, 'listening', { signal });
-  listener.listen(0, '127.0.0.1');
-  await ready;
-
-  const address = listener.address();
-  if (!address || typeof address === 'string') {
-    throw new Error('Expected a TCP listener address.');
-  }
-
-  const client = createConnection({ host: address.address, port: address.port });
-  sockets.add(client);
   await once(client, 'connect', { signal });
 
-  return { client, server: await accepted.promise };
+  return { client, server: await peer.socket };
 });
 
 test('can reply on the same TCP socket after reading a complete selector', async ({

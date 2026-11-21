@@ -6,7 +6,7 @@ interface Readable<Result> {
   read(options?: RequestOptions): Result;
 }
 
-type CustomEntry<Codec extends ItemCodec> = Codec extends ItemCodec
+export type CustomEntry<Codec extends ItemCodec> = Codec extends ItemCodec
   ? MenuItem<Codec['kind'], Codec['type']> & Readable<Promise<ItemValue<Codec>>>
   : never;
 
