@@ -6,6 +6,7 @@ packages:
 
 catalog:
   '@types/node': 26.6.6
+  fast-check: 4.10.3
   oxfmt: 0.79.0
   oxlint: 1.94.0
   typescript: 7.1.0-beta

@@ -26,6 +26,7 @@
     "@gopher-js/tsconfig": "workspace:*",
     "@gopher-js/vitest-config": "workspace:*",
     "@types/node": "catalog:",
+    "fast-check": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
