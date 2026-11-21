@@ -1,6 +1,7 @@
 {
   "name": "@gopher-js/server",
   "version": "0.0.0",
+  "license": "MIT",
   "files": [
     "dist",
     "src"
