@@ -10,8 +10,18 @@ import { createRouteTable } from '../dispatch/route-table.js';
 import { serveConnection } from '../transport/connection.js';
 import { createListener } from '../transport/listener.js';
 import { createRequestReader } from '../transport/request.js';
-import type { RouteHandler } from './route.types.js';
+import type { RequestContext, RouteHandler } from './route.types.js';
 import type { GopherServer, ServerOptions } from './server.types.js';
+
+const encodeResult =
+  <Value, Context extends RequestContext>(
+    handler: RouteHandler<Value, Context>,
+    encode: (value: Value) => Uint8Array,
+  ): RouteHandler<() => Uint8Array, Context> =>
+  async (context) => {
+    const value = await handler(context);
+    return () => encode(value);
+  };
 
 export const createServer = <const Codec extends ItemCodec = never>(
   options: ServerOptions<Codec>,
@@ -24,7 +34,12 @@ export const createServer = <const Codec extends ItemCodec = never>(
   const readRequest = createRequestReader(wire, options.maxRequestBytes, options.requestTimeoutMs);
 
   const listener = createListener((socket, signal) =>
-    serveConnection(socket, signal, wire, readRequest, routes.lookup),
+    serveConnection(socket, signal, {
+      wire,
+      readRequest,
+      lookup: routes.lookup,
+      onError: options.onError,
+    }),
   );
   const routes = createRouteTable(options.publicAddress, () => listener.address()?.port ?? 0);
   const { register } = routes;
@@ -42,10 +57,10 @@ export const createServer = <const Codec extends ItemCodec = never>(
     const encoder = codec as { encode(value: ItemValue<Selected>): string | Uint8Array };
 
     return register(codec.type, selector, {
-      read: async (context) => {
-        const body = encoder.encode(await handler(context));
+      read: encodeResult(handler, (value) => {
+        const body = encoder.encode(value);
         return typeof body === 'string' ? wire.encodeText(body) : body;
-      },
+      }),
     });
   };
 
@@ -53,15 +68,15 @@ export const createServer = <const Codec extends ItemCodec = never>(
     wire,
     text: (selector, handler) =>
       register(itemTypes.text, selector, {
-        read: async (context) => wire.encodeText(await handler(context)),
+        read: encodeResult(handler, (text) => wire.encodeText(text)),
       }),
     menu: (selector, handler) =>
       register(itemTypes.menu, selector, {
-        read: async (context) => wire.encodeMenu(await handler(context)),
+        read: encodeResult(handler, (menu) => wire.encodeMenu(menu)),
       }),
     search: (selector, handler) =>
       register(itemTypes.search, selector, {
-        search: async (context) => wire.encodeMenu(await handler(context)),
+        search: encodeResult(handler, (menu) => wire.encodeMenu(menu)),
       }),
     binary: (selector, handler) => register(itemTypes.binary, selector, { read: handler }),
     item,

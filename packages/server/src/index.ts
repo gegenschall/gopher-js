@@ -3,4 +3,4 @@ export { info, link } from './api/menu.js';
 
 export type { InfoLine, MenuLine } from '@gopher-js/core';
 export type { RequestContext, Route, RouteHandler, SearchContext } from './api/route.types.js';
-export type { GopherServer, ServerOptions } from './api/server.types.js';
+export type { GopherServer, ServerErrorEvent, ServerOptions } from './api/server.types.js';

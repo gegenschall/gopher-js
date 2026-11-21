@@ -88,6 +88,8 @@ RFC 1436 defines type 3 as a directory entry signaling an error. A client expect
 
 `maxRequestBytes` defaults to 8,192 and counts the selector, optional tab and query, and final CRLF. An oversized request receives a type-3 error. `requestTimeoutMs` defaults to 10,000 and runs from connection acceptance through request parsing. When it expires the server closes the socket. Both options take positive integers. Once parsing finishes, handlers and response transfers have no request deadline.
 
+Set `onError: ({ stage, selector, cause }) => { ... }` to observe application failures. The stage is `handler` for a thrown or rejected handler and `response` for an encoder or streaming producer failure. The hook receives the original cause once. The server sends its usual wire response independently of the hook and ignores any hook failure. Invalid requests, missing selectors, peer cancellation, and shutdown do not trigger the hook.
+
 Binary handlers can return an async iterable and receive an abort signal, as do other route handlers. Use the signal for pending I/O so disconnects and shutdown can interrupt work. The server waits for socket write capacity when streaming. A client may half-close its write side after sending the selector and continue receiving the response. The library client sends a TCP reset when cancelling an active request or abandoning a binary stream.
 
 `close()` stops accepting connections, aborts in-flight handlers, and closes active sockets. It can be called concurrently or before startup completes. After it resolves, the server can listen again with the same routes.

@@ -3,7 +3,8 @@ import type { Socket } from 'node:net';
 
 import { createMenuEntry, itemTypes, type GopherRequest, type GopherWire } from '@gopher-js/core';
 
-import type { Binding, ResponseBody } from '../dispatch/binding.types.js';
+import type { ServerErrorEvent, ServerOptions } from '../api/server.types.js';
+import type { Binding, ResponseBody, RouteResult } from '../dispatch/binding.types.js';
 import { RequestTooLarge } from './request.js';
 
 const writeBody = async (socket: Socket, body: ResponseBody, signal: AbortSignal) => {
@@ -27,9 +28,17 @@ const writeBody = async (socket: Socket, body: ResponseBody, signal: AbortSignal
 export const serveConnection = async (
   socket: Socket,
   signal: AbortSignal,
-  wire: GopherWire,
-  readRequest: (socket: Socket) => Promise<GopherRequest>,
-  lookup: (selector: string) => Binding | undefined,
+  {
+    wire,
+    readRequest,
+    lookup,
+    onError,
+  }: {
+    wire: GopherWire;
+    readRequest: (socket: Socket) => Promise<GopherRequest>;
+    lookup: (selector: string) => Binding | undefined;
+    onError: ServerOptions['onError'];
+  },
 ) => {
   const fail = (label: string) =>
     writeBody(
@@ -44,48 +53,61 @@ export const serveConnection = async (
       signal,
     );
 
-  let failure = 'Malformed request';
+  let request: GopherRequest;
   try {
-    const { selector, query } = await readRequest(socket);
-    signal.throwIfAborted();
-    const binding = lookup(selector);
-
-    if (!binding) {
-      await fail('Selector not found');
-      return;
+    request = await readRequest(socket);
+  } catch (cause) {
+    if (!socket.destroyed && !signal.aborted) {
+      await fail(cause instanceof RequestTooLarge ? 'Request too large' : 'Malformed request');
     }
+    return;
+  }
 
-    let body: ResponseBody;
-    failure = 'Handler failed';
+  if (socket.destroyed || signal.aborted) return;
+  const { selector, query } = request;
+  const binding = lookup(selector);
 
+  if (!binding) return fail('Selector not found');
+
+  let stage: ServerErrorEvent['stage'] = 'handler';
+  try {
+    let result: RouteResult;
     if ('search' in binding) {
-      if (query === undefined) {
-        await fail('Search query required');
-        return;
-      }
-
-      body = await binding.search({
+      if (query === undefined) return fail('Search query required');
+      result = await binding.search({
         selector,
         signal,
         query,
       });
     } else {
-      if (query !== undefined) {
-        await fail('Unexpected search query');
-        return;
-      }
-
-      body = await binding.read({ selector, signal });
+      if (query !== undefined) return fail('Unexpected search query');
+      result = await binding.read({ selector, signal });
     }
 
-    await writeBody(socket, body, signal);
-  } catch (error) {
+    signal.throwIfAborted();
+    stage = 'response';
+    await writeBody(socket, typeof result === 'function' ? result() : result, signal);
+  } catch (cause) {
     if (socket.destroyed || signal.aborted) return;
+
+    if (onError) {
+      // A diagnostic hook cannot hold the response open or recursively report its own failure.
+      void Promise.resolve()
+        .then(() =>
+          onError({
+            stage,
+            selector,
+            cause,
+          }),
+        )
+        .catch(() => {});
+    }
+
     if (socket.bytesWritten > 0) {
       socket.resetAndDestroy();
       return;
     }
 
-    await fail(error instanceof RequestTooLarge ? 'Request too large' : failure);
+    await fail('Handler failed');
   }
 };

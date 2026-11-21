@@ -9,6 +9,12 @@ import type {
 
 import type { Route, RouteHandler, SearchContext } from './route.types.js';
 
+export interface ServerErrorEvent {
+  readonly stage: 'handler' | 'response';
+  readonly selector: string;
+  readonly cause: unknown;
+}
+
 export interface ServerOptions<Codec extends ItemCodec = never> {
   readonly publicAddress: GopherAddress;
   readonly types?: readonly Codec[];
@@ -16,6 +22,8 @@ export interface ServerOptions<Codec extends ItemCodec = never> {
 
   readonly maxRequestBytes?: number;
   readonly requestTimeoutMs?: number;
+
+  readonly onError?: (event: ServerErrorEvent) => void | Promise<void>;
 }
 
 type BinaryBody = Uint8Array | AsyncIterable<Uint8Array>;
