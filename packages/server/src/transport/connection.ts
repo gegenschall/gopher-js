@@ -31,11 +31,13 @@ export const serveConnection = async (
   {
     wire,
     readRequest,
+    markResponding,
     lookup,
     onError,
   }: {
     wire: GopherWire;
     readRequest: (socket: Socket) => Promise<GopherRequest>;
+    markResponding: () => void;
     lookup: (selector: string) => Binding | undefined;
     onError: ServerOptions['onError'];
   },
@@ -58,12 +60,15 @@ export const serveConnection = async (
     request = await readRequest(socket);
   } catch (cause) {
     if (!socket.destroyed && !signal.aborted) {
+      markResponding();
       await fail(cause instanceof RequestTooLarge ? 'Request too large' : 'Malformed request');
     }
     return;
   }
 
   if (socket.destroyed || signal.aborted) return;
+  markResponding();
+
   const { selector, query } = request;
   const binding = lookup(selector);
 

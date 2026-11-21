@@ -94,6 +94,8 @@ Binary handlers can return an async iterable and receive an abort signal, as do 
 
 `close()` stops accepting connections, aborts in-flight handlers, and closes active sockets. It can be called concurrently or before startup completes. After it resolves, the server can listen again with the same routes.
 
+Use `await server.close({ gracePeriodMs: 5_000 })` to let dispatched handlers and response transfers finish. The listener stops accepting connections and closes sockets waiting for a request line immediately. If any transfers remain at the deadline, the server aborts their signals and resets their sockets. Concurrent close calls share the first call’s deadline. Shutdown completes when the sockets close, even if application code ignores cancellation.
+
 ## Wire protocol
 
 `@gopher-js/core` exposes the wire functions independently of the TCP client and server. Pass a `Uint8Array`, an iterable of byte chunks, or an async iterable such as a Node socket to the message readers.

@@ -26,6 +26,10 @@ export interface ServerOptions<Codec extends ItemCodec = never> {
   readonly onError?: (event: ServerErrorEvent) => void | Promise<void>;
 }
 
+export interface CloseOptions {
+  readonly gracePeriodMs?: number;
+}
+
 type BinaryBody = Uint8Array | AsyncIterable<Uint8Array>;
 
 export interface GopherServer<Codec extends ItemCodec = never> {
@@ -46,5 +50,5 @@ export interface GopherServer<Codec extends ItemCodec = never> {
   ): Route<Selected['type']>;
 
   listen(address: GopherAddress): Promise<GopherAddress>;
-  close(): Promise<void>;
+  close(options?: CloseOptions): Promise<void>;
 }

@@ -33,10 +33,11 @@ export const createServer = <const Codec extends ItemCodec = never>(
   const wire = options.wire ?? createWire();
   const readRequest = createRequestReader(wire, options.maxRequestBytes, options.requestTimeoutMs);
 
-  const listener = createListener((socket, signal) =>
+  const listener = createListener((socket, signal, markResponding) =>
     serveConnection(socket, signal, {
       wire,
       readRequest,
+      markResponding,
       lookup: routes.lookup,
       onError: options.onError,
     }),

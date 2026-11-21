@@ -160,28 +160,27 @@ test('a client abort signals a handler that is waiting without writing', async (
   await cancelled.promise;
 });
 
-test('closing an active server aborts its producer and interrupts an incomplete transfer', async ({
-  start,
-  signal,
-  expect,
-}) => {
-  const released = Promise.withResolvers<void>();
-  const server = createServer({ publicAddress: loopback });
-  server.binary('/wait', async function* (context) {
-    try {
-      yield Uint8Array.of(1);
-      await once(context.signal, 'abort', { signal });
-    } finally {
-      released.resolve();
-    }
-  });
+test.for([undefined, { gracePeriodMs: 50 }])(
+  'closing an active server (%j) aborts its producer and interrupts an incomplete transfer',
+  async (options, { start, signal, expect }) => {
+    const released = Promise.withResolvers<void>();
+    const server = createServer({ publicAddress: loopback });
+    server.binary('/wait', async function* (context) {
+      try {
+        yield Uint8Array.of(1);
+        await once(context.signal, 'abort', { signal });
+      } finally {
+        released.resolve();
+      }
+    });
 
-  const client = createClient(await start(server));
-  const stream = client.binary('/wait', { signal })[Symbol.asyncIterator]();
-  expect((await stream.next()).value).toEqual(Buffer.from([1]));
-  const interrupted = expect(stream.next()).rejects.toThrow();
-  await Promise.all([server.close(), server.close(), interrupted, released.promise]);
-});
+    const client = createClient(await start(server));
+    const stream = client.binary('/wait', { signal })[Symbol.asyncIterator]();
+    expect((await stream.next()).value).toEqual(Buffer.from([1]));
+    const interrupted = expect(stream.next()).rejects.toThrow();
+    await Promise.all([server.close(options), server.close(), interrupted, released.promise]);
+  },
+);
 
 test('can close during startup and retry after a bind failure', async ({
   start,
