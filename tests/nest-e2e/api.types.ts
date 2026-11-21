@@ -1,13 +1,6 @@
-import { defineItemType } from '@gopher-js/core';
 import { GopherItem, GopherMenu, GopherText } from '@gopher-js/nest-gopher';
 
-const count = defineItemType({
-  type: 'x',
-  kind: 'count',
-  framing: 'text',
-  decode: BigInt,
-  encode: (value) => value.toString(),
-});
+import { counter } from './fixtures/counter.codec.js';
 
 export class InvalidHandlers {
   // @ts-expect-error Text handlers return strings.
@@ -23,7 +16,7 @@ export class InvalidHandlers {
   }
 
   // @ts-expect-error This codec encodes bigint.
-  @GopherItem(count, '/count')
+  @GopherItem(counter, '/count')
   count() {
     return 42;
   }
