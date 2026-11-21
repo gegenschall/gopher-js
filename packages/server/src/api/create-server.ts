@@ -9,6 +9,7 @@ import {
 import { createRouteTable } from '../dispatch/route-table.js';
 import { serveConnection } from '../transport/connection.js';
 import { createListener } from '../transport/listener.js';
+import { createRequestReader } from '../transport/request.js';
 import type { RouteHandler } from './route.types.js';
 import type { GopherServer, ServerOptions } from './server.types.js';
 
@@ -20,8 +21,10 @@ export const createServer = <const Codec extends ItemCodec = never>(
 
   const registered = new Set<ItemCodec>(types);
   const wire = options.wire ?? createWire();
+  const readRequest = createRequestReader(wire, options.maxRequestBytes, options.requestTimeoutMs);
+
   const listener = createListener((socket, signal) =>
-    serveConnection(socket, signal, wire, routes.lookup),
+    serveConnection(socket, signal, wire, readRequest, routes.lookup),
   );
   const routes = createRouteTable(options.publicAddress, () => listener.address()?.port ?? 0);
   const { register } = routes;

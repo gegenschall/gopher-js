@@ -13,6 +13,9 @@ export interface ServerOptions<Codec extends ItemCodec = never> {
   readonly publicAddress: GopherAddress;
   readonly types?: readonly Codec[];
   readonly wire?: GopherWire;
+
+  readonly maxRequestBytes?: number;
+  readonly requestTimeoutMs?: number;
 }
 
 type BinaryBody = Uint8Array | AsyncIterable<Uint8Array>;

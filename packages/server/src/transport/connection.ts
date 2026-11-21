@@ -1,9 +1,10 @@
 import { once } from 'node:events';
 import type { Socket } from 'node:net';
 
-import { createMenuEntry, itemTypes, type GopherWire } from '@gopher-js/core';
+import { createMenuEntry, itemTypes, type GopherRequest, type GopherWire } from '@gopher-js/core';
 
 import type { Binding, ResponseBody } from '../dispatch/binding.types.js';
+import { RequestTooLarge } from './request.js';
 
 const writeBody = async (socket: Socket, body: ResponseBody, signal: AbortSignal) => {
   signal.throwIfAborted();
@@ -27,6 +28,7 @@ export const serveConnection = async (
   socket: Socket,
   signal: AbortSignal,
   wire: GopherWire,
+  readRequest: (socket: Socket) => Promise<GopherRequest>,
   lookup: (selector: string) => Binding | undefined,
 ) => {
   const fail = (label: string) =>
@@ -44,7 +46,7 @@ export const serveConnection = async (
 
   let failure = 'Malformed request';
   try {
-    const { selector, query } = await wire.parseRequest(socket);
+    const { selector, query } = await readRequest(socket);
     signal.throwIfAborted();
     const binding = lookup(selector);
 
@@ -77,13 +79,13 @@ export const serveConnection = async (
     }
 
     await writeBody(socket, body, signal);
-  } catch {
+  } catch (error) {
     if (socket.destroyed || signal.aborted) return;
     if (socket.bytesWritten > 0) {
       socket.resetAndDestroy();
       return;
     }
 
-    await fail(failure);
+    await fail(error instanceof RequestTooLarge ? 'Request too large' : failure);
   }
 };

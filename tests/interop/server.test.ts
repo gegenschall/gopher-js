@@ -1,40 +1,11 @@
 import { once } from 'node:events';
 import { createConnection } from 'node:net';
-import { buffer } from 'node:stream/consumers';
 
 import { createClient } from '@gopher-js/client';
-import { collectBinary, createWire, defineItemType, type GopherAddress } from '@gopher-js/core';
+import { collectBinary, createWire, defineItemType } from '@gopher-js/core';
 import { createServer, info } from '@gopher-js/server';
-import { test as base } from 'vitest';
 
-const loopback = { host: '127.0.0.1', port: 0 };
-
-const test = base.extend('start', ({ signal }, { onCleanup }) => {
-  const servers = new Set<{ close(): Promise<void> }>();
-  onCleanup(async () => {
-    await Promise.all([...servers].map((server) => server.close()));
-  });
-
-  return (server: {
-    listen(address: GopherAddress): Promise<GopherAddress>;
-    close(): Promise<void>;
-  }) => {
-    signal.throwIfAborted();
-    servers.add(server);
-    return server.listen(loopback);
-  };
-});
-
-const exchange = async (address: GopherAddress, request: string, signal: AbortSignal) => {
-  const socket = createConnection({ ...address, signal });
-  try {
-    await once(socket, 'connect');
-    socket.end(request);
-    return await buffer(socket);
-  } finally {
-    socket.destroy();
-  }
-};
+import { exchange, loopback, test } from './fixtures/server.js';
 
 test('serves a text route through the public client and reports the bound address', async ({
   start,

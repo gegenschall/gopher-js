@@ -84,6 +84,10 @@ try {
 
 Each connection serves one selector. A search route requires a tab and accepts an empty query. Malformed requests, missing routes, unexpected queries, and handler failures before the first response byte produce a type-3 error menu. After a binary response starts, a producer failure resets the connection so the reader can detect an incomplete transfer.
 
+RFC 1436 defines type 3 as a directory entry signaling an error. A client expecting text or binary may receive the error menu as ordinary content. The protocol has no universal error status for those transfers. See [RFC 1436, section 3.8 and Appendix](https://www.rfc-editor.org/rfc/rfc1436.html#section-3.8).
+
+`maxRequestBytes` defaults to 8,192 and counts the selector, optional tab and query, and final CRLF. An oversized request receives a type-3 error. `requestTimeoutMs` defaults to 10,000 and runs from connection acceptance through request parsing. When it expires the server closes the socket. Both options take positive integers. Once parsing finishes, handlers and response transfers have no request deadline.
+
 Binary handlers can return an async iterable and receive an abort signal, as do other route handlers. Use the signal for pending I/O so disconnects and shutdown can interrupt work. The server waits for socket write capacity when streaming. A client may half-close its write side after sending the selector and continue receiving the response. The library client sends a TCP reset when cancelling an active request or abandoning a binary stream.
 
 `close()` stops accepting connections, aborts in-flight handlers, and closes active sockets. It can be called concurrently or before startup completes. After it resolves, the server can listen again with the same routes.
