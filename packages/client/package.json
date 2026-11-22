@@ -1,6 +1,6 @@
 {
   "name": "@gopher-js/client",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "An ESM Gopher client for browsing menus and streaming items over TCP.",
   "license": "MIT",
   "repository": {

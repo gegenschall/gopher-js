@@ -1,6 +1,6 @@
 {
   "name": "@gopher-js/nest-gopher",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A Gopher transport and controller decorators for NestJS.",
   "license": "MIT",
   "repository": {
