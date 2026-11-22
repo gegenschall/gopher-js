@@ -1,7 +1,13 @@
 {
   "name": "@gopher-js/server",
   "version": "0.0.0",
+  "description": "A typed Gopher server for Node.js.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gegenschall/gopher-js.git",
+    "directory": "packages/server"
+  },
   "files": [
     "dist",
     "src"
@@ -29,5 +35,8 @@
     "@gopher-js/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:"
+  },
+  "engines": {
+    "node": ">=26.13.1"
   }
 }

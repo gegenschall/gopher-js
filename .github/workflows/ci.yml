@@ -1,28 +1,89 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
-  check:
+  style:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
-      - uses: jdx/mise-action@v5
+          persist-credentials: false
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5
       - run: pnpm install --frozen-lockfile
-
       - run: pnpm format:check
       - run: pnpm lint:check
-      - run: pnpm exec turbo run typecheck build test
-
-      - name: Check pull request commit messages
+      - name: Check squash commit title
         if: github.event_name == 'pull_request'
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA"
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint
+
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec turbo run typecheck build test
+
+  package-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Install and test the packed packages
+        run: |
+          pnpm --filter @gopher-js/core --filter @gopher-js/client --filter @gopher-js/server --filter @gopher-js/nest-gopher pack --pack-destination "$RUNNER_TEMP/tarballs"
+
+          for archive in "$RUNNER_TEMP"/tarballs/*.tgz; do
+            tar -xOf "$archive" package/LICENSE | cmp LICENSE -
+          done
+
+          compiler="$PWD/packages/server/node_modules/typescript/bin/tsc"
+          node_types=$(node -p "require('./packages/server/node_modules/@types/node/package.json').version")
+          cp tests/interop/fixtures/packed-consumer.mts "$RUNNER_TEMP/consumer.mts"
+          cd "$RUNNER_TEMP"
+          npm install --ignore-scripts --no-audit --no-fund --package-lock=false "@types/node@$node_types" ./tarballs/*.tgz
+          node "$compiler" --strict --types node --module nodenext --target es2024 --noEmit consumer.mts
+          node consumer.mts
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4
+        with:
+          fail-on-severity: high
+
+  # Keep the existing required check stable as the underlying jobs evolve.
+  check:
+    if: always()
+    needs: [style, build-test, package-smoke, dependency-review]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          STYLE: ${{ needs.style.result }}
+          BUILD: ${{ needs.build-test.result }}
+          PACK: ${{ needs.package-smoke.result }}
+          DEPENDENCIES: ${{ needs.dependency-review.result }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          test "$STYLE" = success && test "$BUILD" = success && test "$PACK" = success || exit 1
+          if [ "$EVENT" = pull_request ]; then test "$DEPENDENCIES" = success; fi

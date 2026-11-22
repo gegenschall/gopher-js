@@ -1,7 +1,13 @@
 {
   "name": "@gopher-js/client",
   "version": "0.0.0",
+  "description": "An ESM Gopher client for browsing menus and streaming items over TCP.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gegenschall/gopher-js.git",
+    "directory": "packages/client"
+  },
   "files": [
     "dist",
     "src"
@@ -29,5 +35,8 @@
     "@gopher-js/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:"
+  },
+  "engines": {
+    "node": ">=26.13.1"
   }
 }

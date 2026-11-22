@@ -68,13 +68,18 @@ test('expires silent and trickling peers but lets a dispatched handler finish', 
   const trickle = setInterval(() => slow.write('x'), 10);
 
   try {
-    const [empty, partial, complete] = await Promise.all([
+    // Closing a socket while the peer is still writing can deliver a reset or EOF.
+    const slowClosed = buffer(slow).catch((error: unknown) => {
+      expect(error).toMatchObject({ code: 'ECONNRESET' });
+    });
+
+    const [empty, , complete] = await Promise.all([
       buffer(silent),
-      buffer(slow),
+      slowClosed,
       exchange(address, '\r\n', signal),
     ]);
     expect(empty.length).toBe(0);
-    expect(partial.length).toBe(0);
+    expect(slow.bytesRead).toBe(0);
     expect(complete.toString()).toBe('ready\r\n.\r\n');
   } finally {
     clearInterval(trickle);

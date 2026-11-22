@@ -3,6 +3,8 @@
   "format": "oxfmt",
 
   "baseBranch": "main",
-  "fixed": [["@gopher-js/client", "@gopher-js/core", "@gopher-js/server"]],
+  "fixed": [
+    ["@gopher-js/client", "@gopher-js/core", "@gopher-js/server", "@gopher-js/nest-gopher"]
+  ],
   "access": "public"
 }
