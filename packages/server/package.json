@@ -1,6 +1,6 @@
 {
   "name": "@gopher-js/server",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A typed Gopher server for Node.js.",
   "license": "MIT",
   "repository": {
