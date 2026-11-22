@@ -46,6 +46,8 @@ jobs:
         with:
           commit-message: 'chore(release): version packages'
           pr-title: 'chore(release): version packages'
+          # The API path failed to replace refs/heads/changeset-release/main.
+          push-with-git-cli: true
 
   pack:
     needs: select
