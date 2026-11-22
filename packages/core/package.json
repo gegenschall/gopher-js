@@ -1,7 +1,13 @@
 {
   "name": "@gopher-js/core",
   "version": "0.0.0",
+  "description": "Gopher wire protocol, menu types, and item codecs for Node.js.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gegenschall/gopher-js.git",
+    "directory": "packages/core"
+  },
   "files": [
     "dist",
     "src"
@@ -30,5 +36,8 @@
     "fast-check": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=26.13.1"
   }
 }

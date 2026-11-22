@@ -1,0 +1,71 @@
+name: Publish release
+
+on:
+  push:
+    branches: [main]
+    paths: ['packages/core/package.json']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-gopher-main
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.version.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - id: version
+        run: |
+          previous=$(git show HEAD^:packages/core/package.json | jq -r .version)
+          current=$(jq -r .version packages/core/package.json)
+          if [ "$current" != "$previous" ]; then echo 'changed=true' >> "$GITHUB_OUTPUT"; fi
+
+  pack:
+    if: needs.version.outputs.changed == 'true'
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec turbo run typecheck build test
+      - run: bash tooling/release/pack.sh "$RUNNER_TEMP/packages"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-tarballs
+          path: ${{ runner.temp }}/packages/*.tgz
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+  publish:
+    needs: pack
+    environment: npm
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-tarballs
+          path: ${{ runner.temp }}/packages
+      - name: Publish verified archives and create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tooling/release/publish.mjs "$RUNNER_TEMP/packages"
