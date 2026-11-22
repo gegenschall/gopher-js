@@ -47,6 +47,6 @@ Selectors are opaque strings. A search query travels after a tab. Text and menus
 
 Run `mise install`, `pnpm install --frozen-lockfile`, and `pnpm exec turbo run typecheck build test`. The suite includes real loopback client/server and Nest applications. [Development, soak tests, and benchmarks](docs/development.md)
 
-Submit changes through a pull request. Add a changeset for user-facing changes. The version PR collects these into a single release across the four packages. Merging that PR starts npm publication and creates a GitHub Release after registry verification. [Release process](docs/releases.md)
+Submit changes through a pull request. Add a changeset for user-facing changes. The version PR collects these into a single release across the four packages. Merging that PR starts npm publication and creates GitHub Releases for the published packages. [Release process](docs/releases.md)
 
 [MIT License](LICENSE)

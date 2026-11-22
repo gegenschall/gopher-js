@@ -1,18 +1,18 @@
 # Releases
 
-The four public packages share a version. The workspace root, tooling, and tests are private. The initial release is planned as `0.0.1`.
+The four public packages share a version. The workspace root, tooling, and tests are private. The first release is planned as `0.0.1`.
 
-1. Open a PR against `main`. Use a Conventional Commits title and run `pnpm changeset` for user-facing changes. Review the CI results and squash merge.
-2. Changesets updates its version PR, including each package’s changelog. A maintainer may need to approve workflow runs for that bot-created PR. Review the proposed versions and wait for CI.
-3. Merge the version PR when ready to ship. The `Publish release` workflow builds the release commit, packs all four tarballs, installs them together outside the workspace, checks their declarations, and runs a loopback request. A documentation or metadata edit with the same package version skips publication.
-4. The publish job sends the tested archives to the public npm registry in dependency order. Once all four registry integrity hashes match, it creates a GitHub Release tagged `v<version>` at that commit, with notes from the package changelogs.
+1. Open a PR against `main`. Use a Conventional Commits title and add a changeset for user-facing changes. CI builds and tests the workspace and installs the four tarballs together in a clean consumer.
+2. After a squash merge, Changesets creates or updates its version PR with package versions and changelogs. Review the proposed versions and wait for CI. GitHub may ask a maintainer to approve the workflow runs on the bot’s PR.
+3. Merge the version PR when ready to ship. Changesets builds a publish plan from the versions missing on npm. The release workflow builds and tests the commit before packing those packages.
+4. The Changesets publish action publishes the archives from the `npm` environment and creates a GitHub Release for each package, with tags such as `@gopher-js/core@0.0.1`.
 
 ## First publication
 
-An npm owner with publish rights to the `@gopher-js` scope must bootstrap any new package names. For existing packages, configure a GitHub Actions trusted publisher for each package, with owner `gegenschall`, repository `gopher-js`, workflow `release.yml`, environment `npm`, and permission to publish. Restrict the GitHub environment to the protected default branch.
+An npm scope owner can bootstrap new package names by staging each public tarball with `npm stage publish <archive> --access public` and approving it with 2FA. Use the archives from the Changesets pack job or run `pnpm build` and `pnpm pack` for each public package from the release commit. If the initial publication happens outside CI, create its GitHub Releases using the package changelogs and the same release commit.
 
-If npm first needs a package to exist, the scope owner can stage the tested archives from the version commit using `npm stage publish <archive> --access public` and approve them with 2FA in npm. Download the `npm-tarballs` artifact from the release workflow. Stage those exact four archives. After npm approves them, rerun the failed publish job so it retrieves the same artifact. Configure trusted publishing for subsequent releases. [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) · [Staged publishing](https://docs.npmjs.com/staged-publishing/)
+Configure npm trusted publishing on each package for GitHub owner `gegenschall`, repository `gopher-js`, workflow `release.yml`, and environment `npm`. [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) · [Staged publishing](https://docs.npmjs.com/staged-publishing/)
 
 ## Recovery
 
-Rerun the release workflow **for the original release commit** after fixing permissions or a transient registry failure. The job verifies previously published versions against the local tarball hashes and resumes with missing packages. A conflicting archive or tag stops the release. Investigate the mismatch before choosing a new version. A completed npm version cannot be overwritten.
+For a partial npm publish, rerun the full release workflow for the original release commit so Changesets can refresh its publish plan. If a package reached npm but its GitHub Release failed, create that release from the package changelog at the original release commit. [Changesets automation](https://changesets.dev/guide/automating)

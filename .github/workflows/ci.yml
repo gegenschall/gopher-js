@@ -45,7 +45,21 @@ jobs:
       - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: bash tooling/release/pack.sh "$RUNNER_TEMP/packages"
+      - name: Install and test the packed packages
+        run: |
+          pnpm --filter @gopher-js/core --filter @gopher-js/client --filter @gopher-js/server --filter @gopher-js/nest-gopher pack --pack-destination "$RUNNER_TEMP/tarballs"
+
+          for archive in "$RUNNER_TEMP"/tarballs/*.tgz; do
+            tar -xOf "$archive" package/LICENSE | cmp LICENSE -
+          done
+
+          compiler="$PWD/packages/server/node_modules/typescript/bin/tsc"
+          node_types=$(node -p "require('./packages/server/node_modules/@types/node/package.json').version")
+          cp tests/interop/fixtures/packed-consumer.mts "$RUNNER_TEMP/consumer.mts"
+          cd "$RUNNER_TEMP"
+          npm install --ignore-scripts --no-audit --no-fund --package-lock=false "@types/node@$node_types" ./tarballs/*.tgz
+          node "$compiler" --strict --types node --module nodenext --target es2024 --noEmit consumer.mts
+          node consumer.mts
 
   dependency-review:
     if: github.event_name == 'pull_request'
